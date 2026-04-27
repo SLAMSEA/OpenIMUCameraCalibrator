@@ -31,7 +31,7 @@ def main():
                         default="FISHEYE", type=str)
     parser.add_argument("--checker_size_m",
                         help="Length checkerboard square in m.",
-                        default=0.021, type=float)
+                        default=0.025, type=float)
     parser.add_argument("--num_squares_x",
                         help="number of squares in x direction.",
                         default=10, type=int) # 10 for charuco board, 14 radon board
@@ -40,7 +40,7 @@ def main():
                         default=8, type=int) # 8 for charuco board, 9 radon board
     parser.add_argument("--voxel_grid_size",
                         help="Voxel grid size for camera calibration. Will only take images that if there does not exist another pose in the voxel.",
-                        default=0.03, type=float)
+                        default=0.025, type=float)
     parser.add_argument("--calib_cam_line_delay",
                         help="If camera line delay should be calibrated (EXPERIMENTAL)", 
                         default=0)
