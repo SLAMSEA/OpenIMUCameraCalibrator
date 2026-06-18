@@ -69,11 +69,14 @@ void CameraCalibrator::RemoveViewsReprojError(const double max_reproj_error) {
   }
   for (auto v_id : ids_to_remove) {
     recon_calib_dataset_.RemoveView(v_id.first);
-    LOG(INFO) << "Removed view: " << v_id.first
-              << " with RMSE reproj error: " << v_id.second << "\n";
+    std::cout
+      << "Removed view: "
+      << v_id.first
+      << " with RMSE reproj error: "
+      << v_id.second
+      << std::endl;
   }
 }
-
 bool CameraCalibrator::AddObservation(const theia::ViewId& view_id,
                                       const theia::TrackId& object_point_id,
                                       const Eigen::Vector2d& corner) {
@@ -160,7 +163,10 @@ bool CameraCalibrator::RunCalibration() {
       ba_options, recon_calib_dataset_.ViewIds(), &recon_calib_dataset_);
 
   RemoveViewsReprojError(5.0);
-
+  std::cout
+    << "Views after 5px filtering: "
+    << recon_calib_dataset_.NumViews()
+    << std::endl;
   /////////////////////////////////////////////////
   /// 2. Optimize principal point keeping everything else fixed
   /////////////////////////////////////////////////
@@ -172,7 +178,15 @@ bool CameraCalibrator::RunCalibration() {
 
   summary = theia::BundleAdjustViews(
       ba_options, recon_calib_dataset_.ViewIds(), &recon_calib_dataset_);
+  std::cout
+    << "Minimum required views: "
+    << min_num_view_
+    << std::endl;
 
+  std::cout
+    << "Current remaining views: "
+    << recon_calib_dataset_.NumViews()
+    << std::endl;
   if (recon_calib_dataset_.NumViews() < min_num_view_) {
     std::cout << "Not enough views left for proper calibration!" << std::endl;
     return false;
@@ -199,7 +213,10 @@ bool CameraCalibrator::RunCalibration() {
       ba_options, recon_calib_dataset_.ViewIds(), &recon_calib_dataset_);
 
   RemoveViewsReprojError(2.0);
-
+  std::cout
+    << "Views after 2px filtering: "
+    << recon_calib_dataset_.NumViews()
+    << std::endl;
   if (recon_calib_dataset_.NumViews() < min_num_view_) {
     std::cout << "Not enough views left for proper calibration!" << std::endl;
     return false;
@@ -351,18 +368,53 @@ bool CameraCalibrator::CalibrateCameraFromJson(const nlohmann::json& scene_json,
 
   // final reprojection error
   double reproj_error = 0;
+
+  double min_reproj_error = 1e9;
+  double max_reproj_error = 0.0;
+
   for (int i = 0; i < recon_calib_dataset_.NumViews(); ++i) {
-    const double view_reproj_error = utils::GetReprojErrorOfView(
-        recon_calib_dataset_, recon_calib_dataset_.ViewIds()[i]);
+
+    const double view_reproj_error =
+        utils::GetReprojErrorOfView(
+            recon_calib_dataset_,
+            recon_calib_dataset_.ViewIds()[i]);
+
     reproj_error += view_reproj_error;
+
+    min_reproj_error =
+        std::min(min_reproj_error, view_reproj_error);
+
+    max_reproj_error =
+        std::max(max_reproj_error, view_reproj_error);
+
     if (verbose_) {
-      LOG(INFO) << "View: " << recon_calib_dataset_.ViewIds()[i]
-                << " RMSE reprojection error: " << view_reproj_error << "\n";
+      LOG(INFO) << "View: "
+                << recon_calib_dataset_.ViewIds()[i]
+                << " RMSE reprojection error: "
+                << view_reproj_error << "\n";
     }
   }
 
   const double total_repro_error =
       reproj_error / recon_calib_dataset_.NumViews();
+  std::cout << "\n";
+  std::cout << "====================================\n";
+  std::cout << "REPROJECTION ERROR STATISTICS\n";
+  std::cout << "====================================\n";
+  std::cout << "Min  : "
+            << min_reproj_error
+            << " px\n";
+
+  std::cout << "Mean : "
+            << total_repro_error
+            << " px\n";
+
+  std::cout << "Max  : "
+            << max_reproj_error
+            << " px\n";
+
+  std::cout << "====================================\n";
+  std::cout << "\n";
   std::cout << "Final camera calibration reprojection error: "
             << total_repro_error << " from " << recon_calib_dataset_.NumViews()
             << " view." << std::endl;
